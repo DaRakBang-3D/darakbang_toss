@@ -15,9 +15,20 @@ function mtls(): Deno.HttpClient {
   return client;
 }
 
+type Fetcher = (url: string, init: RequestInit) => Promise<Response>;
+
+/** 파트너 API는 반드시 mTLS 클라이언트로 호출 (전역 fetch 그대로 쓰면 인증서가 안 실림) */
+let fetcher: Fetcher = (url, init) =>
+  fetch(url, { ...init, client: mtls() } as RequestInit & { client: Deno.HttpClient });
+
+/** 테스트 전용: 가짜 mTLS fetch 주입 (로그인 우회 플래그 대신 이 방식으로 검증) */
+export function __setTossFetcherForTest(f: Fetcher) {
+  fetcher = f;
+}
+
 type Envelope<T> =
   | { resultType: 'SUCCESS'; success: T }
-  | { resultType: string; success: null; error?: { errorCode?: string; reason?: string } };
+  | { resultType: string; success: null; error?: { errorCode?: string | number; reason?: string } };
 
 export class TossApiError extends Error {
   constructor(
@@ -29,11 +40,10 @@ export class TossApiError extends Error {
 }
 
 async function call<T>(path: string, init: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetcher(`${BASE}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init.headers },
-    client: mtls(),
-  } as RequestInit & { client: Deno.HttpClient });
+  });
   const body = await res.json().catch(() => null);
   // 토스 로그인 API는 { error: 'invalid_grant' } 형태로 실패를 주기도 함
   if (body && typeof body.error === 'string') throw new TossApiError(body.error, body.error);
@@ -41,7 +51,7 @@ async function call<T>(path: string, init: RequestInit): Promise<T> {
   const env = body as Envelope<T> | null;
   if (!res.ok || !env || env.resultType !== 'SUCCESS') {
     const err = env && 'error' in env ? env.error : undefined;
-    throw new TossApiError(err?.errorCode ?? String(res.status), err?.reason ?? 'toss api error');
+    throw new TossApiError(String(err?.errorCode ?? res.status), err?.reason ?? 'toss api error');
   }
   return env.success as T;
 }

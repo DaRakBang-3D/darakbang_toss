@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "apps-in-toss": {
+      "source": { "source": "github", "repo": "toss/apps-in-toss-harness" }
+    }
+  },
+  "enabledPlugins": {
+    "ait@apps-in-toss": true
+  }
+}
