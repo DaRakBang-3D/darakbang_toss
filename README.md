@@ -17,12 +17,12 @@
 npm install
 cp .env.example .env   # API 주소 입력
 npm run dev            # 브라우저: SDK가 devtools mock으로 치환됨 (우하단 AIT 패널)
-npm run build          # tsc → vite build → ait build (darakbang.ait 생성)
+npm run build          # tsc → vite build → ait build (darackbang.ait 생성)
 npm run deploy         # 콘솔 업로드 (ait token add 먼저)
 ```
 
-- 샌드박스 앱: `intoss://darakbang`
-- 콘솔 QR 테스트: `intoss-private://darakbang`
+- 샌드박스 앱: `intoss://darackbang`
+- 콘솔 QR 테스트: `intoss-private://darackbang`
 - **광고는 샌드박스에서 동작하지 않음** → 콘솔 QR 테스트로 확인
 - devtools는 Node 24 이상 권장
 
@@ -97,7 +97,7 @@ supabase functions deploy auth toss-unlink
 
 | 할 일                           | 필요 시점                 | 비고                                                                                        |
 | ------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------- |
-| 앱 등록 (`appName: darakbang`)  | 0단계 QR 테스트 전        | 검토 영업일 1~2일                                                                           |
+| 앱 등록 (`appName: darackbang`) | 0단계 QR 테스트 전        | 검토 영업일 1~2일                                                                           |
 | mTLS 인증서 발급 → secrets 등록 | 0단계 QR 테스트 전        | 콘솔 > 개발 > mTLS 인증서. 만료일 관리                                                      |
 | `.ait` 업로드 → QR 테스트       | 실기기 테스트             | `npm run deploy`, `intoss-private://`                                                       |
 | 사업자 등록                     | 1단계(토스 로그인)·IAP 전 | 검수 영업일 1일. 광고는 수익 5천원까지 유예                                                 |

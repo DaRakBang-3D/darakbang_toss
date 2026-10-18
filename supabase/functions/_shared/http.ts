@@ -1,5 +1,5 @@
 /** 앱인토스 WebView Origin (SDK 3.1+). 로컬 개발용 origin은 ALLOWED_DEV_ORIGINS로 추가 */
-const APP = 'darakbang';
+const APP = 'darackbang'; // 콘솔 appName과 동일해야 함
 const ORIGINS = new Set([
   `https://${APP}.apps.tossmini.com`,
   `https://${APP}.private-apps.tossmini.com`,

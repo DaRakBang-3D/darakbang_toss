@@ -1,8 +1,8 @@
 import { defineConfig } from '@apps-in-toss/web-framework/config';
 
 export default defineConfig({
-  // 콘솔에 등록한 appName과 같아야 함 (intoss://darakbang)
-  appName: 'darakbang',
+  // 콘솔에 등록한 appName과 같아야 함 (intoss://darackbang)
+  appName: 'darackbang',
   brand: {
     // TODO: scene-tokens의 램프빛 노랑 확정값으로 교체
     primaryColor: '#F5B83D',
