@@ -1,29 +1,43 @@
 import { env } from '@/lib/env';
+import { tokenStore } from '@/features/auth/tokenStore';
 
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
-    message: string,
+    public readonly code: string,
   ) {
-    super(message);
+    super(`${status} ${code}`);
   }
 }
 
-/**
- * 기존 다락방 백엔드 호출용 fetch 래퍼.
- * 인증은 서버가 발급한 세션 쿠키로만 한다 (토스 AccessToken은 클라이언트에 두지 않음).
- */
-export async function api<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
-  const { json, headers, ...rest } = init ?? {};
-  const res = await fetch(`${env.apiBase}${path}`, {
-    credentials: 'include',
+type Init = RequestInit & { json?: unknown; auth?: boolean };
+
+/** access 만료(401) 시 1회 재발급 후 재시도. 재발급 로직은 auth 모듈이 주입 */
+let refreshHandler: (() => Promise<boolean>) | null = null;
+export function setRefreshHandler(fn: () => Promise<boolean>) {
+  refreshHandler = fn;
+}
+
+async function send(path: string, { json, auth = true, headers, ...rest }: Init): Promise<Response> {
+  const access = auth ? tokenStore.getAccess() : null;
+  return fetch(`${env.apiBase}${path}`, {
     ...rest,
     headers: {
       ...(json !== undefined && { 'Content-Type': 'application/json' }),
+      ...(access && { Authorization: `Bearer ${access}` }),
       ...headers,
     },
     body: json !== undefined ? JSON.stringify(json) : rest.body,
   });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
-  return (res.status === 204 ? undefined : await res.json()) as T;
+}
+
+/** 다락방 백엔드(Supabase Edge Functions) 호출. 인증은 Bearer 토큰 (쿠키 사용 안 함) */
+export async function api<T>(path: string, init: Init = {}): Promise<T> {
+  let res = await send(path, init);
+  if (res.status === 401 && init.auth !== false && refreshHandler && (await refreshHandler())) {
+    res = await send(path, init);
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, body?.error ?? 'unknown');
+  return body as T;
 }

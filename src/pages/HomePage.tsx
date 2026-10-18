@@ -1,10 +1,11 @@
 import { Button, Spacing, Top } from '@toss/tds-mobile';
 import { useRouter } from '@/app/router';
-import { useAuth } from '@/features/auth/tossLogin';
+import { useAuth } from '@/features/auth/auth';
 
+/** 로그인 버튼 없음: 진입하는 순간 식별키로 준회원 생성 → 바로 꾸미기 */
 export function HomePage() {
   const go = useRouter((s) => s.go);
-  const { me, status, login } = useAuth();
+  const { status, bootstrap } = useAuth();
 
   return (
     <>
@@ -13,16 +14,15 @@ export function HomePage() {
         subtitleBottom={<Top.SubtitleParagraph>다락방에 온 걸 환영해</Top.SubtitleParagraph>}
       />
       <div style={{ padding: '0 24px' }}>
-        {me ? (
-          <Button display="full" size="large" onClick={() => go('editor')}>
-            내 방 꾸미러 가기
+        {status === 'error' ? (
+          <Button display="full" size="large" onClick={bootstrap}>
+            다시 연결하기
           </Button>
         ) : (
-          <Button display="full" size="large" loading={status === 'loading'} onClick={login}>
-            토스로 시작하기
+          <Button display="full" size="large" loading={status !== 'ready'} onClick={() => go('editor')}>
+            내 방 꾸미러 가기
           </Button>
         )}
-        {status === 'error' && <p style={{ color: '#f04452' }}>로그인이 안 됐어. 다시 해볼래?</p>}
         <Spacing size={12} />
         <Button display="full" size="large" variant="weak" onClick={() => go('shop')}>
           생성권 상점

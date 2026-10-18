@@ -1,0 +1,7 @@
+# 앱인토스 인증은 자체 JWT를 쓰므로 Supabase 게이트웨이 JWT 검증을 끈다
+[functions.auth]
+verify_jwt = false
+
+# 토스 서버가 호출하는 연결 끊기 콜백 (Basic Auth로 직접 검증)
+[functions.toss-unlink]
+verify_jwt = false

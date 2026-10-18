@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { getProducts, purchase, type IapProductListItem } from '@/features/iap/iap';
 import { useQuota } from '@/features/ai-generate/quota';
+import { useAuth } from '@/features/auth/auth';
 
 export function ShopPage() {
   const { openToast } = useToast();
   const refreshQuota = useQuota((s) => s.refresh);
+  const ensureTossLinked = useAuth((s) => s.ensureTossLinked);
   const [products, setProducts] = useState<IapProductListItem[]>([]);
 
   useEffect(() => {
@@ -14,6 +16,11 @@ export function ShopPage() {
   }, []);
 
   const buy = async (sku: string) => {
+    // 1단계 인증: 결제 직전에만 토스 로그인 요구
+    if (!(await ensureTossLinked())) {
+      openToast('결제하려면 토스 로그인이 필요해');
+      return;
+    }
     const { ok } = await purchase(sku);
     if (!ok) return;
     track('iap_purchase', { sku });
