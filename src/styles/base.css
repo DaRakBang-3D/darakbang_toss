@@ -1,0 +1,11 @@
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+body {
+  /* 당겨서 새로고침·바운스로 3D 조작이 끊기지 않게 */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}

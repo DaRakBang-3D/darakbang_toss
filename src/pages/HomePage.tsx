@@ -15,14 +15,17 @@ export function HomePage() {
         subtitleBottom={<Top.SubtitleParagraph>다락방에 온 걸 환영해</Top.SubtitleParagraph>}
       />
       <div style={{ padding: '0 24px' }}>
-        {status === 'error' ? (
-          <Button display="full" size="large" onClick={bootstrap}>
-            다시 연결하기
-          </Button>
-        ) : (
-          <Button display="full" size="large" loading={status !== 'ready'} onClick={() => go('editor')}>
-            내 방 꾸미러 가기
-          </Button>
+        {/* 방 꾸미기는 서버 연결 없이도 가능 (기기 저장). 연결 실패는 재시도만 안내 */}
+        <Button display="full" size="large" loading={status === 'loading'} onClick={() => go('editor')}>
+          내 방 꾸미러 가기
+        </Button>
+        {status === 'error' && (
+          <>
+            <Spacing size={8} />
+            <Button display="full" size="medium" variant="weak" onClick={bootstrap}>
+              서버 다시 연결하기
+            </Button>
+          </>
         )}
         {features.payments && (
           <>
