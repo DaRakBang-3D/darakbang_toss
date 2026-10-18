@@ -4,3 +4,12 @@ export const env = {
   adRewardedId: import.meta.env.VITE_AD_REWARDED_ID ?? 'ait-ad-test-rewarded-id',
   adInterstitialId: import.meta.env.VITE_AD_INTERSTITIAL_ID ?? 'ait-ad-test-interstitial-id',
 } as const;
+
+/**
+ * 기능 스위치.
+ * payments: 인앱결제 + 토스 로그인(1단계 인증). 둘 다 사업자 등록이 필요해서 출시 1차엔 끔.
+ * 사업자 등록 후 VITE_FEATURE_PAYMENTS=true 로 다시 빌드·배포하면 켜진다.
+ */
+export const features = {
+  payments: import.meta.env.VITE_FEATURE_PAYMENTS === 'true',
+} as const;

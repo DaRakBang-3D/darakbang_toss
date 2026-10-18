@@ -1,6 +1,7 @@
 import { appLogin, User } from '@apps-in-toss/web-framework';
 import { create } from 'zustand';
 import { api, setRefreshHandler } from '@/api/client';
+import { features } from '@/lib/env';
 import { tokenStore } from './tokenStore';
 
 export interface AppUser {
@@ -76,6 +77,8 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   ensureTossLinked: async () => {
     if (get().user?.tossLinked) return true;
+    // 토스 로그인은 사업자 등록이 필요 → 결제 기능과 함께 켜짐
+    if (!features.payments) return false;
     try {
       // 토스 로그인 약관 동의 화면 (처음 1회). 인가 코드는 10분·1회용
       const { authorizationCode, referrer } = await appLogin();

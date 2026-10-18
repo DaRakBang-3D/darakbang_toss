@@ -1,6 +1,7 @@
 import { Button, Spacing, Top } from '@toss/tds-mobile';
 import { useRouter } from '@/app/router';
 import { useAuth } from '@/features/auth/auth';
+import { features } from '@/lib/env';
 
 /** 로그인 버튼 없음: 진입하는 순간 식별키로 준회원 생성 → 바로 꾸미기 */
 export function HomePage() {
@@ -23,10 +24,14 @@ export function HomePage() {
             내 방 꾸미러 가기
           </Button>
         )}
-        <Spacing size={12} />
-        <Button display="full" size="large" variant="weak" onClick={() => go('shop')}>
-          생성권 상점
-        </Button>
+        {features.payments && (
+          <>
+            <Spacing size={12} />
+            <Button display="full" size="large" variant="weak" onClick={() => go('shop')}>
+              생성권 상점
+            </Button>
+          </>
+        )}
       </div>
     </>
   );
