@@ -7,7 +7,8 @@ export default defineConfig({
     // TODO: scene-tokens의 램프빛 노랑 확정값으로 교체
     primaryColor: '#F5B83D',
   },
-  permissions: [],
+  // 사진을 벽지·바닥·패브릭에 입히기 위한 앨범 읽기
+  permissions: [{ name: 'photos', access: 'read' }],
   navigationBar: {
     withBackButton: true,
     withHomeButton: true,

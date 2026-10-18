@@ -18,6 +18,8 @@ export function RoomCanvas() {
         items: s.items,
         wallColor: s.wallColor,
         floorColor: s.floorColor,
+        mood: s.mood,
+        textureSrc: s.textureSrc,
         selectedId: s.selectedId,
       });
     push();

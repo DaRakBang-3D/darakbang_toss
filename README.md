@@ -38,7 +38,8 @@ src/
     ads/          전면·보상형 공용 훅, 전면 광고는 저장/공유 직후만
     iap/          상품 조회 · 구매 · 미결 주문 복원
     ai-generate/  생성권 잔량 (하루 무료 3회, 서버 관리)
-    editor/       소품 카탈로그(8종·8×8 격자), 방 상태 스토어(겹침 방지, 기기 저장)
+    editor/       소품 8종×2모양·재질5·무드3, 방 스토어(v2, 겹침 방지, 기기+서버 저장),
+                  photoTexture(앨범→512px→검사), aiSuggest(문장→추천)
   scene/      RoomScene(화면비 카메라 맞춤·온디맨드 렌더·드래그), 절차 생성 메시, 성능 프리셋
   lib/        env, analytics(이벤트 이름 고정)
   api/        백엔드 fetch 래퍼 (Bearer 토큰, 401 시 재발급)
@@ -70,29 +71,39 @@ src/
 
 ```
 supabase/
-  migrations/…_toss_auth.sql    toss_users, toss_refresh_tokens (RLS on, service role 전용)
-  functions/auth/               POST /anon · /toss · /refresh, GET /me
-  functions/toss-unlink/        연결 끊기 콜백 (Basic Auth)
-  functions/_shared/            mTLS 클라이언트, JWT 세션, CORS
+  migrations/…_toss_auth.sql            toss_users, toss_refresh_tokens
+  migrations/…_rooms_ai_textures.sql    toss_rooms, toss_ai_usage(+차감·환불·광고 함수), toss_textures, 버킷 toss-textures
+  functions/auth/          POST /anon · /toss · /refresh, GET /me
+  functions/rooms/         GET·PUT /me (사용자당 방 1개, 64KB 제한)
+  functions/ai/            GET /quota, POST /quota/ad-reward(하루 5회), POST /recommend(무료 3회, 실패 시 환불)
+  functions/textures/      POST / (검사 → 저장, 부적절 422), GET /:id (서명 URL)
+  functions/toss-unlink/   연결 끊기 콜백 (Basic Auth)
+  functions/_shared/       mTLS·JWT·CORS, moderation(이미지 검사), aiSuggest(추천 + 허용값 검증)
 ```
+
+모든 테이블 RLS on + 정책 없음 = Edge Function(service role) 전용. 사진 버킷은 비공개(서명 URL).
 
 ```bash
 supabase db push
 supabase secrets set TOSS_MTLS_CERT="$(cat xxx_public.crt)" TOSS_MTLS_KEY="$(cat xxx_private.key)" \
-  APP_JWT_SECRET="$(openssl rand -base64 48)" TOSS_UNLINK_BASIC_AUTH="user:password"
-supabase functions deploy auth toss-unlink
+  APP_JWT_SECRET="$(openssl rand -base64 48)" TOSS_UNLINK_BASIC_AUTH="user:password" \
+  OPENAI_API_KEY="…"      `# 이미지 검사 (omni-moderation, 무료)` \
+  ANTHROPIC_API_KEY="…"   `# AI 추천` \
+  AI_MODEL="claude-haiku-5-5"   `# 선택. 기본값 동일`
+supabase functions deploy auth rooms ai textures toss-unlink
 # 로컬 개발 origin 허용이 필요하면: ALLOWED_DEV_ORIGINS=http://localhost:5173
 ```
 
 `.env`의 `VITE_API_BASE` = `https://<project-ref>.supabase.co/functions/v1`
 
+비밀값이 없을 때 동작: `OPENAI_API_KEY` 없음 → 사진은 "내 폰에서만" 모드 / `ANTHROPIC_API_KEY` 없음 → AI 추천 실패(생성권 환불)
+
 ### 남은 백엔드 API (TODO)
 
-| 메서드 | 경로                  | 역할                                      |
-| ------ | --------------------- | ----------------------------------------- |
-| GET    | `/ai/quota`           | 남은 생성권                               |
-| POST   | `/ai/quota/ad-reward` | 보상형 광고 시청 +1 (하루 상한 서버 검사) |
-| POST   | `/iap/grant`          | 주문 상태 조회 API로 검증 후 생성권 지급  |
+| 메서드 | 경로         | 역할                                     |
+| ------ | ------------ | ---------------------------------------- |
+| POST   | `/iap/grant` | 주문 상태 조회 API로 검증 후 생성권 지급 |
+| GET    | 친구 방 보기 | 공유 링크 → 방 + approved 사진만         |
 
 ## 콘솔 체크리스트
 

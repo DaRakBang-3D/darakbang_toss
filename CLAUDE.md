@@ -11,15 +11,15 @@
 수동 설치: `claude plugin marketplace add toss/apps-in-toss-harness && claude plugin install ait@apps-in-toss`
 설치 후 `/mcp`에서 `ait-console` 로그인.
 
-| 상황                           | 쓸 스킬                                                |
-| ------------------------------ | ------------------------------------------------------ |
-| 서버(Supabase) 코드 작성·점검  | `/ait:server`                                          |
-| 화면 만들기·다듬기 (TDS)       | `/ait:design`                                          |
+| 상황                               | 쓸 스킬                                                |
+| ---------------------------------- | ------------------------------------------------------ |
+| 서버(Supabase) 코드 작성·점검      | `/ait:server`                                          |
+| 화면 만들기·다듬기 (TDS)           | `/ait:design`                                          |
 | 문구 점검 (반말 유지, 애교체 금지) | `/ait:ux-writing`                                      |
-| 폰에서 확인 (.ait 업로드 → QR) | `/ait:test-on-device`                                  |
-| 버그 추적 (브라우저·실기기)    | `/ait:debug`                                           |
-| 검수 전 점검 / 반려 대응       | `/ait:launch`                                          |
-| SDK·정책 사실 확인             | docs MCP (`apps-in-toss-docs`) — 기억으로 답하지 말 것 |
+| 폰에서 확인 (.ait 업로드 → QR)     | `/ait:test-on-device`                                  |
+| 버그 추적 (브라우저·실기기)        | `/ait:debug`                                           |
+| 검수 전 점검 / 반려 대응           | `/ait:launch`                                          |
+| SDK·정책 사실 확인                 | docs MCP (`apps-in-toss-docs`) — 기억으로 답하지 말 것 |
 
 ## 지켜야 할 결정
 
@@ -34,17 +34,20 @@
 - `VITE_FEATURE_PAYMENTS` 기본 false: 사업자 등록 전 1차 출시는 광고만. 결제·토스 로그인·프로모션은 2차
 - 전면 광고는 저장·공유 직후에만 (`useInterstitialAfter`). 보상은 `userEarnedReward`에서만
 - iframe 금지 (ESLint로 강제)
+- MVP 소품 8종 고정(침대·전등·책상·옷장·의자·소파·바닥 매트·서랍). 개인화는 모양 2종·재질 5종·색·무드 3종·방 이름. 크기 조절은 2차
+- 사용자 사진(벽지·바닥·패브릭 3슬롯)은 서버 검사 통과분만 공유 가능. 검사 불가면 "내 폰에서만"(local), 부적절이면 적용 거부
+- AI 추천 출력은 서버에서 허용 목록으로 검증한 값만 사용 (`_shared/aiSuggest.ts`의 목록 = `catalog.ts`와 일치시킬 것)
 
 ## 코드 규칙
 
 `.claude/rules/`에 주제별로 있다. 이 파일은 "무엇을 결정했나", rules는 "코드를 어떻게 쓰나".
 
-| 파일            | 적용 범위   | 내용                                         |
-| --------------- | ----------- | -------------------------------------------- |
-| `00-general.md` | 항상        | 이름, 타입, import, 주석, 에러 처리, 변경 범위 |
-| `10-client.md`  | `src/`      | 폴더 의존 방향, zustand, env, SDK, 화면, 광고 |
-| `20-scene.md`   | `src/scene/`| 성능 프리셋, 리소스 정리, 번들 분리          |
-| `30-server.md`  | `supabase/` | 응답 형식, 보안, 마이그레이션, 테스트        |
+| 파일            | 적용 범위    | 내용                                           |
+| --------------- | ------------ | ---------------------------------------------- |
+| `00-general.md` | 항상         | 이름, 타입, import, 주석, 에러 처리, 변경 범위 |
+| `10-client.md`  | `src/`       | 폴더 의존 방향, zustand, env, SDK, 화면, 광고  |
+| `20-scene.md`   | `src/scene/` | 성능 프리셋, 리소스 정리, 번들 분리            |
+| `30-server.md`  | `supabase/`  | 응답 형식, 보안, 마이그레이션, 테스트          |
 
 규칙과 기존 코드가 다르면 기존 코드를 따르고 규칙 문서를 고친다.
 
@@ -52,5 +55,5 @@
 
 ```bash
 npx tsc -b && npx eslint . && npm run build             # 클라이언트 + .ait
-cd supabase/functions && deno check auth/index.ts toss-unlink/index.ts && deno test --allow-env
+cd supabase/functions && deno check */index.ts && deno test --allow-env
 ```

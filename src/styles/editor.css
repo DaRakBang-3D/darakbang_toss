@@ -125,6 +125,52 @@
   white-space: nowrap;
 }
 
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.swatches + .chips {
+  margin-top: 10px;
+}
+.panel__note {
+  font-size: 12px;
+  color: #8b95a1;
+}
+/* 색상환: 무지개 테두리로 "아무 색이나" 표시. 실제 선택은 숨긴 input[type=color] */
+.swatch--picker {
+  position: relative;
+  overflow: hidden;
+  background: conic-gradient(#f66, #fd5, #6d6, #5cf, #a7f, #f6c, #f66);
+}
+.swatch--picker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+.room-name {
+  position: absolute;
+  left: 16px;
+  top: 12px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 80%);
+  font-size: 14px;
+  font-weight: 600;
+  color: #333d4b;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.room-name ~ .hint {
+  top: 48px;
+}
+
 /* 높이가 낮은 폰: 패널을 납작하게 (규칙 순서상 파일 끝에 둬야 적용됨) */
 @media (max-height: 640px) and (max-width: 599px) {
   .editor__panel {

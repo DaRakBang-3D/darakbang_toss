@@ -1,13 +1,25 @@
 import * as THREE from 'three';
-import { CELL, footprint, GRID, ROOM, WALL_H } from '@/features/editor/catalog';
-import { buildItem } from './itemMeshes';
+import {
+  CATALOG,
+  CELL,
+  footprint,
+  GRID,
+  ROOM,
+  WALL_H,
+  type Mood,
+  type TextureSlot,
+} from '@/features/editor/catalog';
 import type { PlacedItem } from '@/features/editor/roomStore';
+import { buildItem, makePhotoMaterial } from './itemMeshes';
 import type { PerfPreset } from './perfPreset';
 
 export interface SceneState {
   items: PlacedItem[];
   wallColor: string;
   floorColor: string;
+  mood: Mood;
+  /** 슬롯별 사진 주소 (없으면 단색) */
+  textureSrc: Partial<Record<TextureSlot, string>>;
   selectedId: string | null;
 }
 
@@ -22,6 +34,55 @@ const TAP_SLOP = 6; // px: 이보다 덜 움직이면 탭
 const AZ = { min: THREE.MathUtils.degToRad(12), max: THREE.MathUtils.degToRad(78) };
 const POLAR = { min: THREE.MathUtils.degToRad(38), max: THREE.MathUtils.degToRad(68) };
 const ZOOM = { min: 0.6, max: 1.25 };
+
+/** 무드별 천창 빛 (브랜드 조명값은 씬 안에만 둔다) */
+const MOOD_LIGHT: Record<
+  Mood,
+  {
+    bg: string;
+    sky: string;
+    ground: string;
+    hemi: number;
+    spot: string;
+    spotI: number;
+    spotPos: [number, number, number];
+    glow: number;
+  }
+> = {
+  morning: {
+    bg: '#f3ede4',
+    sky: '#fff8ec',
+    ground: '#b9a38a',
+    hemi: 0.9,
+    spot: '#ffe7b8',
+    spotI: 60,
+    spotPos: [0.4, 6.5, 0.6],
+    glow: 0,
+  },
+  sunset: {
+    bg: '#efd9c9',
+    sky: '#ffd6b0',
+    ground: '#8a6a5a',
+    hemi: 0.65,
+    spot: '#ff9a5c',
+    spotI: 70,
+    spotPos: [3.2, 5, 2.4],
+    glow: 0.25,
+  },
+  night: {
+    bg: '#262a38',
+    sky: '#6070a0',
+    ground: '#272733',
+    hemi: 0.35,
+    spot: '#a8b8ff',
+    spotI: 22,
+    spotPos: [0.4, 6.5, 0.6],
+    glow: 1.1,
+  },
+};
+/** 사진 반복 횟수: 정사각 사진이 벽(4m×2.6m)·바닥(4m×4m)에서 늘어나 보이지 않게 */
+const WALL_REPEAT: [number, number] = [2, 1.3];
+const FLOOR_REPEAT: [number, number] = [3, 3];
 const H = ROOM / 2;
 /** 화면에 반드시 들어와야 하는 방의 점: 바닥 네 모서리 + 두 벽의 윗선 */
 const FIT_POINTS = [
@@ -53,6 +114,11 @@ export class RoomScene {
   private wallMat = new THREE.MeshStandardMaterial({ roughness: 0.95 });
   private itemsRoot = new THREE.Group();
   private itemObjs = new Map<string, { group: THREE.Group; key: string }>();
+  private hemi!: THREE.HemisphereLight;
+  private sky!: THREE.SpotLight;
+  private textures = new Map<string, THREE.Texture>();
+  private loader = new THREE.TextureLoader();
+  private photoMat: { src: string; mat: THREE.MeshStandardMaterial } | null = null;
   private selection: THREE.Group;
   private grid: THREE.GridHelper;
   private ro: ResizeObserver;
@@ -110,17 +176,29 @@ export class RoomScene {
 
   sync(state: SceneState) {
     this.state = state;
-    this.floorMat.color.set(state.floorColor);
-    this.wallMat.color.set(state.wallColor);
+    this.applySurface(this.wallMat, state.wallColor, state.textureSrc.wall, WALL_REPEAT);
+    this.applySurface(this.floorMat, state.floorColor, state.textureSrc.floor, FLOOR_REPEAT);
+    this.applyMood(state.mood);
+    const photo = this.fabricMaterial(state.textureSrc.fabric);
+    const glow = MOOD_LIGHT[state.mood].glow;
 
     const alive = new Set<string>();
     for (const it of state.items) {
       alive.add(it.id);
-      const key = `${it.type}|${it.color}`;
+      const usePhoto = it.useFabricPhoto && CATALOG[it.type].fabric && photo;
+      const key = `${it.type}|${it.variant}|${it.material}|${it.color}|${usePhoto ? state.textureSrc.fabric : ''}|${glow}`;
       let obj = this.itemObjs.get(it.id);
       if (!obj || obj.key !== key) {
         if (obj) this.disposeGroup(obj.group);
-        const group = buildItem(it.type, it.color);
+        const group = buildItem({ ...it, photo: usePhoto ? photo : null });
+        // 밤·노을 무드에서 전등 갓이 은은하게 빛남 (실제 광원 추가 없이 → 성능 부담 없음)
+        group.traverse((o) => {
+          if (o instanceof THREE.Mesh && o.userData.glow) {
+            const m = o.material as THREE.MeshStandardMaterial;
+            m.emissive.copy(m.color);
+            m.emissiveIntensity = glow;
+          }
+        });
         group.userData.itemId = it.id;
         group.traverse((o) => (o.userData.itemId = it.id));
         this.itemsRoot.add(group);
@@ -167,6 +245,8 @@ export class RoomScene {
         mats.forEach((m) => m.dispose());
       }
     });
+    this.textures.forEach((t) => t.dispose());
+    this.photoMat?.mat.dispose();
     this.renderer.dispose();
     el.remove();
   }
@@ -184,9 +264,11 @@ export class RoomScene {
     wallL.receiveShadow = wallB.receiveShadow = true;
     this.scene.add(floor, wallL, wallB);
 
-    // 브랜드 시그니처: 천창 빛
-    this.scene.add(new THREE.HemisphereLight('#fff8ec', '#b9a38a', 0.9));
+    // 브랜드 시그니처: 천창 빛 (색·세기·위치는 무드에 따라 applyMood가 바꿈)
+    this.hemi = new THREE.HemisphereLight('#fff8ec', '#b9a38a', 0.9);
+    this.scene.add(this.hemi);
     const sky = new THREE.SpotLight('#ffe7b8', 60, 14, Math.PI / 5, 0.95, 1.4);
+    this.sky = sky;
     sky.position.set(0.4, 6.5, 0.6);
     sky.target.position.set(0, 0, 0);
     sky.castShadow = true;
@@ -194,6 +276,57 @@ export class RoomScene {
     sky.shadow.radius = 6;
     sky.shadow.bias = -0.0005;
     this.scene.add(sky, sky.target);
+  }
+
+  private applyMood(mood: Mood) {
+    const m = MOOD_LIGHT[mood];
+    (this.scene.background as THREE.Color).set(m.bg);
+    this.hemi.color.set(m.sky);
+    this.hemi.groundColor.set(m.ground);
+    this.hemi.intensity = m.hemi;
+    this.sky.color.set(m.spot);
+    this.sky.intensity = m.spotI;
+    this.sky.position.set(...m.spotPos);
+  }
+
+  /** 사진 텍스처 로드 (주소별 1회, 로드되면 다시 그림) */
+  private texture(src: string) {
+    let t = this.textures.get(src);
+    if (!t) {
+      t = this.loader.load(src, () => this.requestRender());
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      this.textures.set(src, t);
+    }
+    return t;
+  }
+
+  /** 벽·바닥: 사진이 있으면 사진(색은 흰색이어야 사진 색 그대로), 없으면 단색 */
+  private applySurface(
+    mat: THREE.MeshStandardMaterial,
+    color: string,
+    src: string | undefined,
+    repeat: [number, number],
+  ) {
+    const map = src ? this.texture(src) : null;
+    if (map) map.repeat.set(...repeat);
+    if (mat.map !== map) {
+      mat.map = map;
+      mat.needsUpdate = true;
+    }
+    mat.color.set(map ? '#ffffff' : color);
+  }
+
+  /** 패브릭 사진 재질: 사진이 바뀔 때만 새로 만들고 이전 것은 정리 */
+  private fabricMaterial(src: string | undefined) {
+    if (this.photoMat?.src === src) return this.photoMat?.mat ?? null;
+    this.photoMat?.mat.dispose();
+    this.photoMat = null;
+    if (!src) return null;
+    const mat = makePhotoMaterial(this.texture(src));
+    mat.userData.shared = true; // 여러 소품이 함께 씀 → 소품 삭제 시 dispose 안 함
+    this.photoMat = { src, mat };
+    return mat;
   }
 
   private buildSelection() {

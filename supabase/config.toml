@@ -5,3 +5,13 @@ verify_jwt = false
 # 토스 서버가 호출하는 연결 끊기 콜백 (Basic Auth로 직접 검증)
 [functions.toss-unlink]
 verify_jwt = false
+
+# 아래 함수들도 자체 JWT(_shared/session.ts)로 인증
+[functions.rooms]
+verify_jwt = false
+
+[functions.ai]
+verify_jwt = false
+
+[functions.textures]
+verify_jwt = false
