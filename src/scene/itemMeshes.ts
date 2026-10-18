@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CATALOG, CELL, type ItemType } from '@/editor/catalog';
+import { CATALOG, CELL, type ItemType } from '@/features/editor/catalog';
 
 // ---- 절차 생성 메시 (glTF 없이 기본 도형만. 다운로드 0) ----
 

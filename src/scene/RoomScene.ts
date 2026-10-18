@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { CELL, footprint, GRID, ROOM, WALL_H } from '@/editor/catalog';
+import { CELL, footprint, GRID, ROOM, WALL_H } from '@/features/editor/catalog';
 import { buildItem } from './itemMeshes';
-import type { PlacedItem } from '@/editor/roomStore';
+import type { PlacedItem } from '@/features/editor/roomStore';
 import type { PerfPreset } from './perfPreset';
 
 export interface SceneState {
@@ -33,6 +33,10 @@ const FIT_POINTS = [
   new THREE.Vector3(H, WALL_H, -H),
   new THREE.Vector3(-H, WALL_H, H),
 ];
+// 렌더마다 new 하지 않도록 재사용하는 벡터 (씬 규칙)
+const CAM_TARGET = new THREE.Vector3(0, WALL_H * 0.32, 0);
+const TMP_DIR = new THREE.Vector3();
+const TMP_PROJ = new THREE.Vector3();
 
 /**
  * 다락방 3D 씬 (React 밖에서 관리).
@@ -225,20 +229,19 @@ export class RoomScene {
    * 가장 가까운 거리를 이분 탐색. 세로로 긴 폰·폴드·태블릿 모두 방이 꽉 차게 보인다.
    */
   private placeCamera() {
-    const target = new THREE.Vector3(0, WALL_H * 0.32, 0);
-    const dir = new THREE.Vector3(
+    const dir = TMP_DIR.set(
       Math.sin(this.polar) * Math.sin(this.az),
       Math.cos(this.polar),
       Math.sin(this.polar) * Math.cos(this.az),
     );
     const put = (dist: number) => {
-      this.camera.position.copy(target).addScaledVector(dir, dist);
-      this.camera.lookAt(target);
+      this.camera.position.copy(CAM_TARGET).addScaledVector(dir, dist);
+      this.camera.lookAt(CAM_TARGET);
       this.camera.updateMatrixWorld();
     };
     const fits = () =>
       FIT_POINTS.every((p) => {
-        const v = p.clone().project(this.camera);
+        const v = TMP_PROJ.copy(p).project(this.camera);
         return Math.abs(v.x) <= 0.92 && Math.abs(v.y) <= 0.92;
       });
 

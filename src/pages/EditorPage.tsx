@@ -1,13 +1,13 @@
 import { Button, useToast } from '@toss/tds-mobile';
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { CATALOG, ITEM_TYPES, SWATCHES } from '@/editor/catalog';
-import { useRoom } from '@/editor/roomStore';
+import { CATALOG, ITEM_TYPES, SWATCHES } from '@/features/editor/catalog';
+import { useRoom } from '@/features/editor/roomStore';
 import { useInterstitialAfter } from '@/features/ads/useInterstitialAfter';
 import { track } from '@/lib/analytics';
 import '@/styles/editor.css';
 
 // three는 에디터 진입 시점에만 받는다
-const RoomCanvas = lazy(() => import('@/scene/RoomCanvas'));
+const RoomCanvas = lazy(() => import('@/scene/RoomCanvas').then((m) => ({ default: m.RoomCanvas })));
 
 type Tab = 'items' | 'room';
 

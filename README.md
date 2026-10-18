@@ -38,7 +38,8 @@ src/
     ads/          전면·보상형 공용 훅, 전면 광고는 저장/공유 직후만
     iap/          상품 조회 · 구매 · 미결 주문 복원
     ai-generate/  생성권 잔량 (하루 무료 3회, 서버 관리)
-  scene/      Three.js 방 씬, 성능 프리셋(low/high)
+    editor/       소품 카탈로그(8종·8×8 격자), 방 상태 스토어(겹침 방지, 기기 저장)
+  scene/      RoomScene(화면비 카메라 맞춤·온디맨드 렌더·드래그), 절차 생성 메시, 성능 프리셋
   lib/        env, analytics(이벤트 이름 고정)
   api/        백엔드 fetch 래퍼 (Bearer 토큰, 401 시 재발급)
 ```
