@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   // aitDevtools: 브라우저에서 SDK를 mock으로 치환 + 패널 표시 (프로덕션 빌드에선 비활성)
-  plugins: [react(), aitDevtools.vite()],
+  plugins: [aitDevtools.vite(), react()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
